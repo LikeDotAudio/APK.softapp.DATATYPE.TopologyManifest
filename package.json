@@ -1,0 +1,9 @@
+{
+  "name": "datatype-topology-manifest",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Project topology hierarchy, equipment manifest card browser, and standalone HTML report generator",
+  "scripts": {
+    "test": "node --test test/topology.test.mjs"
+  }
+}

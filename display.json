@@ -1,0 +1,8 @@
+{
+  "name": "Topology & Manifest",
+  "icon": "🌐",
+  "group": "Design",
+  "description": "Project topology hierarchy, equipment manifest card browser, and standalone HTML report generator",
+  "entrypoint": "index.html",
+  "blockTypes": ["topologymanifest", "manifest", "topology"]
+}
