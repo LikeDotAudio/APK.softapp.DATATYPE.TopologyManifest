@@ -75,24 +75,24 @@ export class TopologyModel {
     const when = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
     const typeSummaryHtml = typeCounts.map(([type, count]) => `
-      <div style="padding: 6px 12px; background: #121A2F; border: 1px solid #1E2A45; border-radius: 4px; font-size: 11px; display: inline-flex; align-items: center; gap: 8px;">
-        <span style="font-weight: 700; color: #F0F4F8;">${esc(type)}</span>
-        <span style="background: #1E2A45; color: #F4902C; padding: 2px 6px; border-radius: 10px; font-weight: 600;">${count}</span>
+      <div style="padding: 6px 12px; background: #18181b; border: 1px solid #2c2c2c; border-radius: 4px; font-size: 11px; display: inline-flex; align-items: center; gap: 8px;">
+        <span style="font-weight: 700; color: #f4f4f5;">${esc(type)}</span>
+        <span style="background: #2c2c2c; color: #F4902C; padding: 2px 6px; border-radius: 10px; font-weight: 600;">${count}</span>
       </div>
     `).join(' ');
 
     const cardsHtml = this.entities.map((e) => `
-      <div class="entity-card" style="padding: 14px; background: #121A2F; border: 1px solid #1E2A45; border-radius: 6px; display: flex; flex-direction: column; gap: 6px;">
+      <div class="entity-card" style="padding: 14px; background: #18181b; border: 1px solid #2c2c2c; border-radius: 6px; display: flex; flex-direction: column; gap: 6px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-family: monospace; font-size: 12px; font-weight: 700; color: #F4902C;">${esc(e.mnemonic)}</span>
-          <span style="font-size: 10px; text-transform: uppercase; color: #4A9EFF; background: #0E1424; padding: 2px 6px; border-radius: 3px;">${esc(e.type)}</span>
+          <span style="font-size: 10px; text-transform: uppercase; color: #4A9EFF; background: #0f0f11; padding: 2px 6px; border-radius: 3px;">${esc(e.type)}</span>
         </div>
-        <div style="font-size: 13px; font-weight: 600; color: #F0F4F8;">${esc(e.label)}</div>
-        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #8B9BB4; margin-top: 4px;">
+        <div style="font-size: 13px; font-weight: 600; color: #f4f4f5;">${esc(e.label)}</div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #888888; margin-top: 4px;">
           <span>Room: ${esc(e.room || '—')}</span>
           <span style="font-family: monospace;">${esc(e.ip || '—')}</span>
         </div>
-        <div style="font-size: 9px; font-family: monospace; color: #4D5E80; margin-top: 2px;">OID: ${esc(e.id)}</div>
+        <div style="font-size: 9px; font-family: monospace; color: #52525b; margin-top: 2px;">OID: ${esc(e.id)}</div>
       </div>
     `).join('');
 
@@ -102,20 +102,20 @@ export class TopologyModel {
   <meta charset="UTF-8">
   <title>Topology & Manifest — ${esc(this.projectName)}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #080C16; color: #F0F4F8; margin: 0; padding: 24px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #f4f4f5; margin: 0; padding: 24px; }
     h1 { margin: 0 0 6px 0; font-size: 20px; }
-    .header { border-bottom: 1px solid #1E2A45; padding-bottom: 16px; margin-bottom: 20px; }
+    .header { border-bottom: 1px solid #2c2c2c; padding-bottom: 16px; margin-bottom: 20px; }
     .stats-row { display: flex; gap: 14px; margin-bottom: 20px; }
-    .stat { padding: 12px 18px; background: #121A2F; border: 1px solid #1E2A45; border-radius: 6px; }
+    .stat { padding: 12px 18px; background: #18181b; border: 1px solid #2c2c2c; border-radius: 6px; }
     .stat-v { font-size: 18px; font-weight: 800; color: #F4902C; }
-    .stat-l { font-size: 10px; color: #8B9BB4; text-transform: uppercase; margin-bottom: 4px; }
+    .stat-l { font-size: 10px; color: #888888; text-transform: uppercase; margin-bottom: 4px; }
     .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
   </style>
 </head>
 <body>
   <div class="header">
     <h1>${esc(this.projectName)} — Topology & Manifest</h1>
-    <div style="font-size: 11px; color: #8B9BB4;">Generated: ${when} • Self-contained offline report</div>
+    <div style="font-size: 11px; color: #888888;">Generated: ${when} • Self-contained offline report</div>
   </div>
 
   <div class="stats-row">
