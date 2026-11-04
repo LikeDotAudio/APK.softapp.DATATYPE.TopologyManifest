@@ -1,0 +1,4 @@
+{
+  "_about": "What the Discovered panel lists: things on the bus whose kinds (a protocol that saw them, the scanner's kind segment or their device_class) contain one of these words, case-insensitive. Tunables only: source holds no device list. Empty: the manifest offers everything on the bus.",
+  "kinds": []
+}

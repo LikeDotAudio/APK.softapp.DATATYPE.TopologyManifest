@@ -40,6 +40,30 @@ export class TopologyModel {
     return newEnt;
   }
 
+  /**
+   * Add a discovered thing (APKSoftapp.discovered) as an entity, or refresh the one
+   * already holding its identity. Identity is the MAC, else serial, else agent —
+   * never the IP, which is only shown. Returns the entity, or null without identity.
+   */
+  addDiscovered(thing) {
+    const deviceId = thing && (thing.mac || thing.serial || thing.agent);
+    if (!deviceId) return null;
+    const label = thing.name || [thing.vendor, thing.model].filter(Boolean).join(' ') || deviceId;
+    const ip = (thing.ips && thing.ips[0]) || '';
+    const found = this.entities.find((e) => e.deviceId === deviceId);
+    if (found) {
+      found.label = label;
+      if (ip) found.ip = ip;
+      return found;
+    }
+    const kind = (thing.kinds && thing.kinds[0]) || 'DEVICE';
+    const ent = this.addEntity({ label, type: String(kind).toUpperCase(), mnemonic: String(thing.name || deviceId).toUpperCase().slice(0, 24), room: '', ip });
+    ent.deviceId = deviceId;
+    ent.room = '';
+    if (!ip) ent.ip = '';
+    return ent;
+  }
+
   deleteEntity(id) {
     const idx = this.entities.findIndex((e) => e.id === id);
     if (idx !== -1) {
@@ -121,7 +145,7 @@ export class TopologyModel {
   <div class="stats-row">
     <div class="stat"><div class="stat-l">TOTAL ENTITIES</div><div class="stat-v">${this.entities.length}</div></div>
     <div class="stat"><div class="stat-l">EQUIPMENT TYPES</div><div class="stat-v">${typeCounts.length}</div></div>
-    <div class="stat"><div class="stat-l">CONNECTIONS</div><div class="stat-v">${this.connectionCount}</div></div>
+    <div class="stat"><div class="stat-l">CONNECTIONS</div><div class="stat-v">${esc(this.connectionCount)}</div></div>
   </div>
 
   <div style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 8px;">

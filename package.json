@@ -4,6 +4,6 @@
   "type": "module",
   "description": "Project topology hierarchy, equipment manifest card browser, and standalone HTML report generator",
   "scripts": {
-    "test": "node --test test/topology.test.mjs"
+    "test": "node --test test/*.test.mjs"
   }
 }
