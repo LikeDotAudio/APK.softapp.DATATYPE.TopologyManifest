@@ -3,6 +3,7 @@
 
 import { TopologyModel } from './topologyModel.js';
 import { connectTopologyHost, blockMeta } from './topologyHost.js';
+import { topologyToIfc, topologyFromIfc, schemaOf } from './topologyIfc.js';
 
 const S = window.APKSoftapp;
 const esc = S ? S.esc : (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -14,19 +15,21 @@ if (S) S.describe({
   does: 'Shows the facility entities (devices, racks, rooms) as cards and exports them as one standalone HTML manifest.',
   inputs: [
     { name: 'Topology block', from: 'the CAD (topologymanifest block: projectName, entities[])', kind: 'block' },
-    { name: 'Topology .json', from: '📂 Open Block (a file saved by Save & Return)', kind: 'file' },
+    { name: 'Topology file', from: '📂 Open: a .json saved by Save & Return, or its .ifc twin', kind: 'file' },
     { name: 'Discovered devices', from: 'the bus, via ⚡ Discovered (kinds filter from config/discovered.json)', kind: 'bus', topic: 'Device/<kind>/<id>' },
   ],
   outputs: [
     { name: 'Standalone manifest', to: '<project>_manifest.html download (📄 Export Standalone HTML)', kind: 'file' },
-    { name: 'Topology block', to: 'the CAD drawing (Save & Return), or a .json download when standalone', kind: 'block' },
+    { name: 'Topology block', to: 'the CAD drawing (Save & Return); standalone, <project>.json beside its .ifc twin (Save Model)', kind: 'block' },
+    { name: 'IFC twin', to: '<project>.ifc (IFC4X3_ADD2) with the .json when standalone: each entity an occurrence with a DATA port, each link an IfcRelConnectsPorts, all of them one SITE NETWORK IfcDistributionSystem', kind: 'file' },
   ],
   controls: [
     { name: 'Search', how: 'Type in the search box: filters cards by label, IP, room or mnemonic' },
     { name: '➕ Add Entity', how: 'Asks for a label and a type, adds a card' },
+    { name: '🔗 Link', how: 'Asks for two entities (mnemonic or id) and, optionally, their ports: one link between them' },
     { name: 'Delete', how: 'On a card: removes that entity' },
     { name: '⚡ Discovered', how: 'Shows what the bus knows; Add to manifest copies one in (by MAC / serial)' },
-    { name: '📂 Open Block / 📄 Export / 💾 Save & Return / ✕', how: 'Load a .json, export HTML, send back to the CAD, close the window' },
+    { name: '📂 Open / 📄 Export / 💾 Save & Return / ✕', how: 'Load a .json or .ifc, export HTML, send back to the CAD (standalone: the .json and its .ifc twin), close the window' },
   ],
   problems: ['bad_json', 'bad_input', 'file_unreadable', 'config_invalid', 'save_failed'],
 });
@@ -72,6 +75,7 @@ function renderHeaderStats() {
       <span>ENTITIES: <strong style="color: var(--osc-text-primary);">${model.entities.length}</strong></span>
       <span>TYPES: <strong style="color: var(--osc-accent-secondary);">${typeCounts.length}</strong></span>
       <span>CONNECTIONS: <strong style="color: var(--osc-accent-primary);">${esc(model.connectionCount)}</strong></span>
+      <span>LINKS: <strong style="color: var(--osc-text-primary);">${model.links.length}</strong></span>
     </div>
   `;
 }
@@ -155,6 +159,22 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAll();
   });
 
+  document.getElementById('btn-add-link')?.addEventListener('click', () => {
+    const from = window.prompt('Link from (mnemonic or id):', model.entities[0]?.mnemonic || '');
+    if (!from) return;
+    const to = window.prompt('Link to (mnemonic or id):', '');
+    if (!to) return;
+    const fromPort = window.prompt(`Port on ${from} (optional):`, '') || '';
+    const toPort = window.prompt(`Port on ${to} (optional):`, '') || '';
+    if (!model.addLink(from, to, { fromPort, toPort })) {
+      const missing = [from, to].filter((w) => !model.findEntity(w));
+      if (S) S.showProblem('bad_input', { subject: 'Link', detail: missing.length ? `No entity is ${missing.map((w) => `"${w}"`).join(' or ')}.` : 'A link joins two different entities.', fix: ['Give the mnemonic (or OID) of two cards on the page.'] });
+      return;
+    }
+    changed();
+    renderAll();
+  });
+
   document.getElementById('btn-export-html')?.addEventListener('click', () => {
     const html = model.buildStandaloneHtml();
     const blob = new Blob([html], { type: 'text/html' });
@@ -166,35 +186,21 @@ document.addEventListener('DOMContentLoaded', () => {
     URL.revokeObjectURL(url);
   });
 
-  document.getElementById('btn-open-block')?.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      const retry = () => document.getElementById('btn-open-block')?.click();
-      const fail = (code, detail) => {
-        if (S) S.showProblem(code, { subject: file.name, detail, onRetry: retry, fix: code === 'file_unreadable' ? [] : ['Pick a topology .json saved by Save & Return (it holds projectName and entities[]).'] });
-        else alert(`${file.name}: ${detail}`);
-      };
-      reader.onerror = () => fail('file_unreadable', reader.error ? reader.error.message : 'The browser could not read the file.');
-      reader.onload = (event) => {
-        let parsed;
-        try {
-          parsed = JSON.parse(event.target.result);
-        } catch (err) {
-          fail('bad_json', `${file.name} is not valid JSON: ${err.message}`);
-          return;
-        }
-        const fault = topologyFault(parsed);
-        if (fault) { fail('bad_input', fault); return; }
-        loadLocal(new TopologyModel(parsed));
-      };
-      reader.readAsText(file);
-    };
-    input.click();
+  // 📂 Open: a topology .json, or an .ifc (its manifest, topologyIfc.js)
+  document.getElementById('btn-open-block')?.addEventListener('click', async () => {
+    if (!S) return;
+    const r = await S.openModel({
+      fromIfc: (text) => topologyFromIfc(text),
+      fromJson: (parsed) => { const fault = topologyFault(parsed); if (fault) throw new Error(fault); return parsed; },
+    });
+    if (!r.ok) {
+      if (!r.cancelled) S.showProblem(r.problem, { onRetry: () => document.getElementById('btn-open-block')?.click(),
+        fix: ['Pick a topology .json saved by Save & Return (it holds projectName and entities[]), or its .ifc twin.'] });
+      return;
+    }
+    loadLocal(new TopologyModel(r.model));
+    const tag = document.getElementById('block-tag');
+    if (tag) tag.textContent = r.kind === 'ifc' ? `${r.name} · ${schemaOf(r.text)}` : r.name;
   });
 
   document.getElementById('btn-discovered')?.addEventListener('click', async () => {
@@ -216,10 +222,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  document.getElementById('btn-save-block')?.addEventListener('click', () => {
+  document.getElementById('btn-save-block')?.addEventListener('click', async () => {
     let how = '';
-    try { how = host ? host.save(model.toJSON(), blockMeta(model)) : ''; }
-    catch (e) { S.showProblem('save_failed', { subject: model.projectName, detail: e && e.message ? e.message : String(e), onRetry: () => document.getElementById('btn-save-block')?.click() }); return; }
+    const retry = () => document.getElementById('btn-save-block')?.click();
+    const meta = blockMeta(model);
+    if (host && !host.embedded && typeof S.saveModel === 'function') {
+      // standalone: Save Model — the .json and its .ifc twin, both or neither
+      const r = await S.saveModel(model.toJSON(), { name: meta.filename, toIfc: (b) => topologyToIfc(b, { name: meta.filename }) });
+      if (!r.ok) { if (!r.cancelled) S.showProblem(r.problem || 'save_failed', { onRetry: retry }); return; }
+      const tag = document.getElementById('block-tag');
+      if (tag) tag.textContent = r.via === 'directory' ? 'SAVED .JSON + .IFC' : 'DOWNLOADED .JSON + .IFC';
+      return;
+    }
+    try { how = host ? host.save(model.toJSON(), meta) : ''; }
+    catch (e) { S.showProblem('save_failed', { subject: model.projectName, detail: e && e.message ? e.message : String(e), onRetry: retry }); return; }
     const tag = document.getElementById('block-tag');
     if (tag && !host) tag.textContent = 'NOT SAVED: SHARED CODE MISSING';
     if (tag && how) tag.textContent = how === 'host' ? 'SAVED TO THE CAD' : 'DOWNLOADED .JSON';

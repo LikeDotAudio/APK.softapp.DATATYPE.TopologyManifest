@@ -20,6 +20,8 @@ export class TopologyModel {
       { id: 'dev_8', label: 'Video Switcher Frame', type: 'VISION_MIXER', mnemonic: 'VMX-01', parent_id: 'rack_2', room: 'Rack Room', ip: '10.200.1.40' },
     ];
 
+    // the links between entities (topologyIfc.js writes each as one IfcRelConnectsPorts): { id, from, to, fromPort, toPort }
+    this.links = Array.isArray(initialData?.links) ? initialData.links.map((l) => ({ ...l })) : [];
     this.connectionCount = initialData?.connectionCount || 24;
     this.searchQuery = '';
     this._devCounter = this.entities.length + 1;
@@ -68,9 +70,29 @@ export class TopologyModel {
     const idx = this.entities.findIndex((e) => e.id === id);
     if (idx !== -1) {
       this.entities.splice(idx, 1);
+      this.links = this.links.filter((l) => l.from !== id && l.to !== id);
       return true;
     }
     return false;
+  }
+
+  /** The entity a word names: its id, else its mnemonic (any case). */
+  findEntity(word) {
+    const w = String(word ?? '').trim();
+    if (!w) return null;
+    return this.entities.find((e) => e.id === w) || this.entities.find((e) => String(e.mnemonic || '').toLowerCase() === w.toLowerCase()) || null;
+  }
+
+  /** Link two entities (by id or mnemonic), port names optional; the link, or null when either is unknown or both are one. */
+  addLink(from, to, { fromPort = '', toPort = '' } = {}) {
+    const a = this.findEntity(from);
+    const z = this.findEntity(to);
+    if (!a || !z || a === z) return null;
+    let n = this.links.length + 1;
+    while (this.links.some((l) => l.id === `L${n}`)) n++;
+    const link = { id: `L${n}`, from: a.id, to: z.id, fromPort: String(fromPort || ''), toPort: String(toPort || '') };
+    this.links.push(link);
+    return link;
   }
 
   getTypeCounts() {
@@ -166,6 +188,7 @@ export class TopologyModel {
       projectName: this.projectName,
       connectionCount: this.connectionCount,
       entities: this.entities,
+      links: this.links,
     };
   }
 }

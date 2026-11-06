@@ -50,10 +50,10 @@
       <span class="window-pill" id="block-tag" style="color: #10B981;">PROJECT MANIFEST</span>
     </div>
     <div class="window-actions">
-      <button class="btn btn-secondary btn-sm" id="btn-open-block">📂 Open Block</button>
+      <button class="btn btn-secondary btn-sm" id="btn-open-block" title="Open a topology: its .json or its .ifc twin">📂 Open</button>
       <button class="btn btn-secondary btn-sm" id="btn-discovered">⚡ Discovered</button>
       <button class="btn btn-secondary btn-sm" id="btn-export-html">📄 Export Standalone HTML</button>
-      <button class="btn btn-primary btn-sm" id="btn-save-block">💾 Save & Return</button>
+      <button class="btn btn-primary btn-sm" id="btn-save-block" title="Save &amp; Return to the CAD; standalone, Save Model: the .json and its .ifc twin">💾 Save & Return</button>
       <button class="btn btn-icon btn-sm" id="btn-close" title="Close Window">✕</button>
     </div>
   </header>
@@ -62,6 +62,7 @@
     <div style="display: flex; align-items: center; gap: 10px;">
       <input type="text" class="input" id="inp-search" placeholder="🔍 Search entities, IP, room, or mnemonic..." style="width: 320px; height: 28px;">
       <button class="btn btn-secondary btn-sm" id="btn-add-entity">➕ Add Entity</button>
+      <button class="btn btn-secondary btn-sm" id="btn-add-link" title="Link two entities (by mnemonic), ports optional">🔗 Link</button>
     </div>
     <div id="telemetry-metrics"></div>
   </div>
